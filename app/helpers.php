@@ -7,5 +7,8 @@
  * | Copyright (c) 2012-2019, zxl  All Rights Reserved.
  * '-------------------------------------------------------------------*/
 function route_class(){
-    return str_replace('.',"_",Route::currentRouteName());
+    return str_replace('.',"-",Route::currentRouteName());
+}
+function categroy_nav_active ($categroy_id){
+    return active_class((if_route("categories.show")) && (if_route_param("category",$categroy_id)));
 }
