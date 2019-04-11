@@ -12,7 +12,7 @@ class ReplyObserver
 {
     public function created(Reply $reply)
     {
-       $reply->topic->updateReplyCount();
+      $reply->topic->updateReplyCount();
         $reply->topic->user->toNotify(new TopicReplied($reply));
     }
 
