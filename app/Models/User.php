@@ -37,7 +37,15 @@ class User extends Authenticatable implements MustVerifyEmailContract
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    /**模型关联 一个用户 有多个话题  一对多
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function topics(){
         return $this->hasMany(Topic::class);
+    }
+
+    public function isAuthOf($model){
+        return $this->id == $model->user_id;
     }
 }
