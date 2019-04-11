@@ -16,21 +16,21 @@ class RepliesController extends Controller
 
 
 
-	public function store(ReplyRequest $request,Reply $reply)
-	{
+    public function store(ReplyRequest $request,Reply $reply)
+    {
         $reply->content = $request->content;
         $reply->user_id = \Auth::id();
         $reply->topic_id = $request->topic_id;
         $reply->save();
         return redirect()->to($reply->topic->link())->with('message', 'Created successfully.');
-	}
+    }
 
 
-	public function destroy(Reply $reply)
-	{
-		$this->authorize('destroy', $reply);
-		$reply->delete();
+    public function destroy(Reply $reply)
+    {
+        $this->authorize('destroy', $reply);
+        $reply->delete();
 
-		return redirect()->route('replies.index')->with('message', 'Deleted successfully.');
-	}
+        return redirect()->route('replies.index')->with('message', 'Deleted successfully.');
+    }
 }
