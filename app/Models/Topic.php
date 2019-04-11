@@ -23,6 +23,13 @@ class Topic extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**一篇帖子下有多条回复
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function replies(){
+        return $this->hasMany(Reply::class);
+    }
+
     public function scopeWithOrder($query,$order){
         switch ($order){
             case "recent":
