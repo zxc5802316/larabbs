@@ -55,4 +55,8 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function isAuthOf($model){
         return $this->id == $model->user_id;
     }
+    public function scopeRecent($query)
+    {
+        return $query->orderBy('id', 'desc');
+    }
 }
