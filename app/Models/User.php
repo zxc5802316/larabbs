@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\ActiveUserHelper;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Auth\MustVerifyEmail as MVET;
@@ -13,6 +14,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     use MVET;
     use Notifiable;
     use HasRoles;
+    use ActiveUserHelper;
 
     public function toNotify($instance)
     {
