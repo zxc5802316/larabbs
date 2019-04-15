@@ -17,6 +17,8 @@ class TopicObserver
 
     public function saving(Topic $topic)
     {
+        $topic->body = str_replace("{","<span>{</span>",$topic->body);
+        $topic->body = str_replace("}","<span>}</span>",$topic->body);
         // XSS 过滤
         $topic->body = clean($topic->body, 'user_topic_body');
 
