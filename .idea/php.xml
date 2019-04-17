@@ -115,6 +115,7 @@
       <path value="$PROJECT_DIR$/vendor/viacreative/sudo-su" />
       <path value="$PROJECT_DIR$/vendor/ckeditor/ckeditor" />
       <path value="$PROJECT_DIR$/vendor/summerblue/administrator" />
+      <path value="$PROJECT_DIR$/vendor/noisywinds/laravel-smartmd" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="7.1" />

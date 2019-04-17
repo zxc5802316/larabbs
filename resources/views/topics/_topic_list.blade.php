@@ -25,7 +25,11 @@
               <i class="far fa-folder"></i>
               {{ $topic->category->name }}
             </a>
-
+            <span> • </span>
+            <a class="text-secondary" href="{{ route("tag.index",$topic->tag_id) }}" title="{{ $topic->tag->name }}">
+              <i class="far fa-bookmark"></i>
+              {{ $topic->tag->name }}
+            </a>
             <span> • </span>
             <a class="text-secondary" href="{{ route('users.show', [$topic->user_id]) }}" title="{{ $topic->user->name }}">
               <i class="far fa-user"></i>

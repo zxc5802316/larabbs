@@ -16912,18 +16912,29 @@ body {
 .simditor-body pre,
 .topic-body pre {
   word-wrap: normal;
+  padding: 0;
+  overflow: auto;
+  margin: 1.5em 0px;
 }
 
 .simditor-body pre code,
 .topic-body pre code {
   display: block;
-  padding: 0;
+  padding: 10px 0px;
+  padding-left: 10px;
   margin: 0;
-  overflow: initial;
   line-height: inherit;
   word-wrap: normal;
-  background-color: transparent;
+  background-color: #384548;
+  color: #19AC18;
   border: 0;
+}
+
+.simditor-body pre code .token,
+.simditor-body pre code .punctuation,
+.topic-body pre code .token,
+.topic-body pre code .punctuation {
+  color: darkturquoise !important;
 }
 
 .simditor-body pre code:before,
@@ -17020,5 +17031,65 @@ body {
 
 .notification-badge .badge-hint {
   background-color: #d15b47 !important;
+}
+
+/* 侧边栏标签 */
+
+.tag-body-a a {
+  line-height: 24px;
+  display: block;
+  background: #999;
+  float: left;
+  padding: 3px 10px;
+  margin: 10px 5px 0 0;
+  border-radius: 3px;
+  transition: all 0.5s;
+  text-decoration: none;
+  color: #FFF;
+}
+
+.tag-body-a a:nth-child(8n-7) {
+  background: #8A9B0F;
+}
+
+.tag-body-a a:nth-child(8n-6) {
+  background: #EB6841;
+}
+
+.tag-body-a a:nth-child(8n-5) {
+  background: #3FB8AF;
+}
+
+.tag-body-a a:nth-child(8n-4) {
+  background: #FE4365;
+}
+
+.tag-body-a a:nth-child(8n-3) {
+  background: #FC9D9A;
+}
+
+.tag-body-a a:nth-child(8n-2) {
+  background: #EDC951;
+}
+
+.tag-body-a a:nth-child(8n-1) {
+  background: #C8C8A9;
+}
+
+.tag-body-a a:nth-child(8n) {
+  background: #83AF9B;
+}
+
+.tag-body-a a:first-child {
+  background: #036564;
+}
+
+.tag-body-a a:last-child {
+  background: #3299BB;
+}
+
+.tag-body-a a:hover {
+  border-radius: 0;
+  text-shadow: #000 1px 1px 1px;
 }
 

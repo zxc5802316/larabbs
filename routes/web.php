@@ -45,3 +45,16 @@ Route::resource('replies', 'RepliesController', ['only' => [ 'store','destroy']]
 Route::resource('notifications', 'NotificationsController', ['only' => ['index']]);
 
 Route::get('permission-denied', 'PagesController@permissionDenied')->name('permission-denied');
+
+Route::get("tag/{tag}","TagsController@index")->name('tag.index');
+
+Route::group(['namespace' => 'Smartmd', 'prefix' => 'editor'], function () {
+    Route::post('/upload', 'UploadController@imSave');
+    Route::get('/write', function () {
+        return view('vendor/smartmd/write');
+    });
+    Route::get('/php-show','ParseController@index');
+    Route::get('/js-show',function(){
+        return view('vendor/smartmd/js-show');
+    });
+});

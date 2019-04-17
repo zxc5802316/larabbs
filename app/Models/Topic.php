@@ -5,7 +5,7 @@ namespace App\Models;
 class Topic extends Model
 {
     protected $fillable = [
-        'title', 'body', 'category_id', 'excerpt', 'slug'
+        'title', 'body', 'category_id', 'excerpt', 'slug',"tag_id"
     ];
 
     /** 一对一 关联 关联 category 一个话题属于一个分类；
@@ -15,6 +15,12 @@ class Topic extends Model
         return $this->belongsTo(Category::class);
     }
 
+    /** 一对一 关联 关联 tag 一个话题属于一个标签；
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function tag(){
+        return $this->belongsTo(Tag::class);
+    }
     /**一对一 关联 关联 User 一个话题拥有一个作者。
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
@@ -62,5 +68,10 @@ class Topic extends Model
     public function updateReplyCount(){
         $this->reply_count = $this->replies->count();
         $this->save();
+    }
+
+    public function updateTagCount($tag_id){
+        $this->tag->topic_count = $this->where("tag_id",$tag_id)->count();
+        $this->tag->save();
     }
 }

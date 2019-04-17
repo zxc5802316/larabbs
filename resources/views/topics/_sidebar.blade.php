@@ -23,6 +23,21 @@
     </div>
   </div>
 @endif
+@if (count($tags))
+  <div class="card mt-4">
+    <div class="card-body  pt-2">
+      <div class="text-center mt-1 mb-0 text-muted">标签</div>
+      <hr class="mt-2 mb-1">
+      <div class="tag-body-a">
+      @foreach ($tags as $tag)
+        <a class="" href="{{route('tag.index',$tag->id)}}">
+           {{ $tag->name.'('.$tag->topic_count.')' }}</span>
+        </a>
+      @endforeach
+      </div>
+    </div>
+  </div>
+@endif
 @if (count($links))
   <div class="card mt-4">
     <div class="card-body pt-2">

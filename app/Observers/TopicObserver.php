@@ -19,6 +19,7 @@ class TopicObserver
     {
         $topic->body = str_replace("{","<span>{</span>",$topic->body);
         $topic->body = str_replace("}","<span>}</span>",$topic->body);
+        //Parsedown
         // XSS 过滤
         $topic->body = clean($topic->body, 'user_topic_body');
 
@@ -27,7 +28,9 @@ class TopicObserver
 
 
     }
-
+    public function created(Topic $topic){
+        $topic->updateTagCount($topic->tag_id);
+    }
     public function saved(Topic $topic){
         // 如 slug 字段无内容，即使用翻译器对 title 进行翻译
         if ( ! $topic->slug) {
@@ -38,6 +41,7 @@ class TopicObserver
 
     public function deleted(Topic $topic){
         \DB::table('replies')->where('topic_id', $topic->id)->delete();
+        $topic->updateTagCount($topic->tag_id);
     }
 
 }

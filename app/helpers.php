@@ -16,7 +16,9 @@ function make_excerpt($value,$length = 200){
     $excerpt = trim(preg_replace('/\r\n\|r\|\n+/',"",strip_tags($value)));
     return str_limit($excerpt,$length);
 }
-
+function select_url_after(){
+    return str_contains(Request::fullUrl(),"?")?"&":"?";
+}
 function model_admin_link($title, $model)
 {
     return model_link($title, $model, 'admin');

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Handlers\ImageUploadHandler;
 use App\Models\Category;
 use App\Models\Link;
+use App\Models\Tag;
 use App\Models\Topic;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -18,12 +19,13 @@ class TopicsController extends Controller
         $this->middleware('auth', ['except' => ['index', 'show']]);
     }
 
-	public function index(Request $request,Topic $topic,User $user,Link $link)
+	public function index(Request $request,Topic $topic,User $user,Link $link,Tag $tag)
 	{
-		$topics = $topic->with(["user","category"])->withOrder($request->order)->paginate(20);
+		$topics = $topic->with(["user","category","tag"])->withOrder($request->order)->paginate(20);
         $active_users = $user->getActiveUsers();
         $links = $link->getAllCached();
-        return view('topics.index', compact('topics', 'active_users', 'links'));
+        $tags = $tag->all();
+        return view('topics.index', compact('topics', 'active_users', 'links',"tags"));
 	}
 
     public function show(Request $request,Topic $topic)
@@ -34,10 +36,11 @@ class TopicsController extends Controller
         return view('topics.show', compact('topic'));
     }
 
-	public function create(Topic $topic)
+	public function create(Topic $topic,Tag $tag)
 	{
         $categories  = Category::all();
-		return view('topics.create_and_edit', compact('topic',"categories"));
+        $tags = $tag->all();
+		return view('topics.create_and_edit', compact('topic',"categories",'tags'));
 	}
 
 	public function store(TopicRequest $request,Topic $topic)
@@ -48,11 +51,12 @@ class TopicsController extends Controller
 		return redirect()->to($topic->link())->with('success', '帖子创建成功！');
 	}
 
-	public function edit(Topic $topic)
+	public function edit(Topic $topic,Tag $tag)
 	{
         $this->authorize('update', $topic);
         $categories = Category::all();
-		return view('topics.create_and_edit', compact('topic',"categories"));
+        $tags = $tag->all();
+		return view('topics.create_and_edit', compact('topic',"categories",'tags'));
 	}
 
 	public function update(TopicRequest $request, Topic $topic)

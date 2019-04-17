@@ -349,17 +349,25 @@
 
   pre {
     word-wrap: normal;
+    padding: 0;
+    overflow: auto;
+    margin: 1.5em 0px;
   }
 
   pre code {
     display: block;
-    padding: 0;
+    padding: 10px 0px;
+    padding-left: 10px;
     margin: 0;
-    overflow: initial;
     line-height: inherit;
     word-wrap: normal;
-    background-color: transparent;
+    background-color: #384548;
+    color: #19AC18;
     border: 0;
+    .token,.punctuation
+    {
+      color: darkturquoise!important;
+    }
   }
 
   pre code:before,
