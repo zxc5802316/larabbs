@@ -42,6 +42,13 @@ return [
                 return model_admin_link($model->category->name, $model->category);
             },
         ],
+        'tag' => [
+            'title'    => '标签',
+            'sortable' => false,
+            'output'   => function ($value, $model) {
+                return model_admin_link($model->tag->name, $model->tag);
+            },
+        ],
         'reply_count' => [
             'title'    => '评论',
         ],
@@ -71,6 +78,13 @@ return [
         ],
         'category' => [
             'title'              => '分类',
+            'type'               => 'relationship',
+            'name_field'         => 'name',
+            'search_fields'      => ["CONCAT(id, ' ', name)"],
+            'options_sort_field' => 'id',
+        ],
+        'tag' => [
+            'title'              => '标签',
             'type'               => 'relationship',
             'name_field'         => 'name',
             'search_fields'      => ["CONCAT(id, ' ', name)"],

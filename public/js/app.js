@@ -1767,7 +1767,7 @@ module.exports = {
   * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
   */
 (function (global, factory) {
-   true ? factory(exports, __webpack_require__(/*! jquery */ "./node_modules/_jquery@3.3.1@jquery/dist/jquery.js"), __webpack_require__(/*! popper.js */ "./node_modules/_popper.js@1.15.0@popper.js/dist/esm/popper.js")) :
+   true ? factory(exports, __webpack_require__(/*! jquery */ "./node_modules/_jquery@3.4.0@jquery/dist/jquery.js"), __webpack_require__(/*! popper.js */ "./node_modules/_popper.js@1.15.0@popper.js/dist/esm/popper.js")) :
   undefined;
 }(this, function (exports, $, Popper) { 'use strict';
 
@@ -6231,15 +6231,929 @@ function isSlowBuffer (obj) {
 
 /***/ }),
 
-/***/ "./node_modules/_jquery@3.3.1@jquery/dist/jquery.js":
+/***/ "./node_modules/_jquery-pjax@2.0.1@jquery-pjax/jquery.pjax.js":
+/*!********************************************************************!*\
+  !*** ./node_modules/_jquery-pjax@2.0.1@jquery-pjax/jquery.pjax.js ***!
+  \********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+/*!
+ * Copyright 2012, Chris Wanstrath
+ * Released under the MIT License
+ * https://github.com/defunkt/jquery-pjax
+ */
+
+(function($){
+
+// When called on a container with a selector, fetches the href with
+// ajax into the container or with the data-pjax attribute on the link
+// itself.
+//
+// Tries to make sure the back button and ctrl+click work the way
+// you'd expect.
+//
+// Exported as $.fn.pjax
+//
+// Accepts a jQuery ajax options object that may include these
+// pjax specific options:
+//
+//
+// container - String selector for the element where to place the response body.
+//      push - Whether to pushState the URL. Defaults to true (of course).
+//   replace - Want to use replaceState instead? That's cool.
+//
+// For convenience the second parameter can be either the container or
+// the options object.
+//
+// Returns the jQuery object
+function fnPjax(selector, container, options) {
+  options = optionsFor(container, options)
+  return this.on('click.pjax', selector, function(event) {
+    var opts = options
+    if (!opts.container) {
+      opts = $.extend({}, options)
+      opts.container = $(this).attr('data-pjax')
+    }
+    handleClick(event, opts)
+  })
+}
+
+// Public: pjax on click handler
+//
+// Exported as $.pjax.click.
+//
+// event   - "click" jQuery.Event
+// options - pjax options
+//
+// Examples
+//
+//   $(document).on('click', 'a', $.pjax.click)
+//   // is the same as
+//   $(document).pjax('a')
+//
+// Returns nothing.
+function handleClick(event, container, options) {
+  options = optionsFor(container, options)
+
+  var link = event.currentTarget
+  var $link = $(link)
+
+  if (link.tagName.toUpperCase() !== 'A')
+    throw "$.fn.pjax or $.pjax.click requires an anchor element"
+
+  // Middle click, cmd click, and ctrl click should open
+  // links in a new tab as normal.
+  if ( event.which > 1 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey )
+    return
+
+  // Ignore cross origin links
+  if ( location.protocol !== link.protocol || location.hostname !== link.hostname )
+    return
+
+  // Ignore case when a hash is being tacked on the current URL
+  if ( link.href.indexOf('#') > -1 && stripHash(link) == stripHash(location) )
+    return
+
+  // Ignore event with default prevented
+  if (event.isDefaultPrevented())
+    return
+
+  var defaults = {
+    url: link.href,
+    container: $link.attr('data-pjax'),
+    target: link
+  }
+
+  var opts = $.extend({}, defaults, options)
+  var clickEvent = $.Event('pjax:click')
+  $link.trigger(clickEvent, [opts])
+
+  if (!clickEvent.isDefaultPrevented()) {
+    pjax(opts)
+    event.preventDefault()
+    $link.trigger('pjax:clicked', [opts])
+  }
+}
+
+// Public: pjax on form submit handler
+//
+// Exported as $.pjax.submit
+//
+// event   - "click" jQuery.Event
+// options - pjax options
+//
+// Examples
+//
+//  $(document).on('submit', 'form', function(event) {
+//    $.pjax.submit(event, '[data-pjax-container]')
+//  })
+//
+// Returns nothing.
+function handleSubmit(event, container, options) {
+  options = optionsFor(container, options)
+
+  var form = event.currentTarget
+  var $form = $(form)
+
+  if (form.tagName.toUpperCase() !== 'FORM')
+    throw "$.pjax.submit requires a form element"
+
+  var defaults = {
+    type: ($form.attr('method') || 'GET').toUpperCase(),
+    url: $form.attr('action'),
+    container: $form.attr('data-pjax'),
+    target: form
+  }
+
+  if (defaults.type !== 'GET' && window.FormData !== undefined) {
+    defaults.data = new FormData(form)
+    defaults.processData = false
+    defaults.contentType = false
+  } else {
+    // Can't handle file uploads, exit
+    if ($form.find(':file').length) {
+      return
+    }
+
+    // Fallback to manually serializing the fields
+    defaults.data = $form.serializeArray()
+  }
+
+  pjax($.extend({}, defaults, options))
+
+  event.preventDefault()
+}
+
+// Loads a URL with ajax, puts the response body inside a container,
+// then pushState()'s the loaded URL.
+//
+// Works just like $.ajax in that it accepts a jQuery ajax
+// settings object (with keys like url, type, data, etc).
+//
+// Accepts these extra keys:
+//
+// container - String selector for where to stick the response body.
+//      push - Whether to pushState the URL. Defaults to true (of course).
+//   replace - Want to use replaceState instead? That's cool.
+//
+// Use it just like $.ajax:
+//
+//   var xhr = $.pjax({ url: this.href, container: '#main' })
+//   console.log( xhr.readyState )
+//
+// Returns whatever $.ajax returns.
+function pjax(options) {
+  options = $.extend(true, {}, $.ajaxSettings, pjax.defaults, options)
+
+  if ($.isFunction(options.url)) {
+    options.url = options.url()
+  }
+
+  var hash = parseURL(options.url).hash
+
+  var containerType = $.type(options.container)
+  if (containerType !== 'string') {
+    throw "expected string value for 'container' option; got " + containerType
+  }
+  var context = options.context = $(options.container)
+  if (!context.length) {
+    throw "the container selector '" + options.container + "' did not match anything"
+  }
+
+  // We want the browser to maintain two separate internal caches: one
+  // for pjax'd partial page loads and one for normal page loads.
+  // Without adding this secret parameter, some browsers will often
+  // confuse the two.
+  if (!options.data) options.data = {}
+  if ($.isArray(options.data)) {
+    options.data.push({name: '_pjax', value: options.container})
+  } else {
+    options.data._pjax = options.container
+  }
+
+  function fire(type, args, props) {
+    if (!props) props = {}
+    props.relatedTarget = options.target
+    var event = $.Event(type, props)
+    context.trigger(event, args)
+    return !event.isDefaultPrevented()
+  }
+
+  var timeoutTimer
+
+  options.beforeSend = function(xhr, settings) {
+    // No timeout for non-GET requests
+    // Its not safe to request the resource again with a fallback method.
+    if (settings.type !== 'GET') {
+      settings.timeout = 0
+    }
+
+    xhr.setRequestHeader('X-PJAX', 'true')
+    xhr.setRequestHeader('X-PJAX-Container', options.container)
+
+    if (!fire('pjax:beforeSend', [xhr, settings]))
+      return false
+
+    if (settings.timeout > 0) {
+      timeoutTimer = setTimeout(function() {
+        if (fire('pjax:timeout', [xhr, options]))
+          xhr.abort('timeout')
+      }, settings.timeout)
+
+      // Clear timeout setting so jquerys internal timeout isn't invoked
+      settings.timeout = 0
+    }
+
+    var url = parseURL(settings.url)
+    if (hash) url.hash = hash
+    options.requestUrl = stripInternalParams(url)
+  }
+
+  options.complete = function(xhr, textStatus) {
+    if (timeoutTimer)
+      clearTimeout(timeoutTimer)
+
+    fire('pjax:complete', [xhr, textStatus, options])
+
+    fire('pjax:end', [xhr, options])
+  }
+
+  options.error = function(xhr, textStatus, errorThrown) {
+    var container = extractContainer("", xhr, options)
+
+    var allowed = fire('pjax:error', [xhr, textStatus, errorThrown, options])
+    if (options.type == 'GET' && textStatus !== 'abort' && allowed) {
+      locationReplace(container.url)
+    }
+  }
+
+  options.success = function(data, status, xhr) {
+    var previousState = pjax.state
+
+    // If $.pjax.defaults.version is a function, invoke it first.
+    // Otherwise it can be a static string.
+    var currentVersion = typeof $.pjax.defaults.version === 'function' ?
+      $.pjax.defaults.version() :
+      $.pjax.defaults.version
+
+    var latestVersion = xhr.getResponseHeader('X-PJAX-Version')
+
+    var container = extractContainer(data, xhr, options)
+
+    var url = parseURL(container.url)
+    if (hash) {
+      url.hash = hash
+      container.url = url.href
+    }
+
+    // If there is a layout version mismatch, hard load the new url
+    if (currentVersion && latestVersion && currentVersion !== latestVersion) {
+      locationReplace(container.url)
+      return
+    }
+
+    // If the new response is missing a body, hard load the page
+    if (!container.contents) {
+      locationReplace(container.url)
+      return
+    }
+
+    pjax.state = {
+      id: options.id || uniqueId(),
+      url: container.url,
+      title: container.title,
+      container: options.container,
+      fragment: options.fragment,
+      timeout: options.timeout
+    }
+
+    if (options.push || options.replace) {
+      window.history.replaceState(pjax.state, container.title, container.url)
+    }
+
+    // Only blur the focus if the focused element is within the container.
+    var blurFocus = $.contains(context, document.activeElement)
+
+    // Clear out any focused controls before inserting new page contents.
+    if (blurFocus) {
+      try {
+        document.activeElement.blur()
+      } catch (e) { /* ignore */ }
+    }
+
+    if (container.title) document.title = container.title
+
+    fire('pjax:beforeReplace', [container.contents, options], {
+      state: pjax.state,
+      previousState: previousState
+    })
+    context.html(container.contents)
+
+    // FF bug: Won't autofocus fields that are inserted via JS.
+    // This behavior is incorrect. So if theres no current focus, autofocus
+    // the last field.
+    //
+    // http://www.w3.org/html/wg/drafts/html/master/forms.html
+    var autofocusEl = context.find('input[autofocus], textarea[autofocus]').last()[0]
+    if (autofocusEl && document.activeElement !== autofocusEl) {
+      autofocusEl.focus()
+    }
+
+    executeScriptTags(container.scripts)
+
+    var scrollTo = options.scrollTo
+
+    // Ensure browser scrolls to the element referenced by the URL anchor
+    if (hash) {
+      var name = decodeURIComponent(hash.slice(1))
+      var target = document.getElementById(name) || document.getElementsByName(name)[0]
+      if (target) scrollTo = $(target).offset().top
+    }
+
+    if (typeof scrollTo == 'number') $(window).scrollTop(scrollTo)
+
+    fire('pjax:success', [data, status, xhr, options])
+  }
+
+
+  // Initialize pjax.state for the initial page load. Assume we're
+  // using the container and options of the link we're loading for the
+  // back button to the initial page. This ensures good back button
+  // behavior.
+  if (!pjax.state) {
+    pjax.state = {
+      id: uniqueId(),
+      url: window.location.href,
+      title: document.title,
+      container: options.container,
+      fragment: options.fragment,
+      timeout: options.timeout
+    }
+    window.history.replaceState(pjax.state, document.title)
+  }
+
+  // Cancel the current request if we're already pjaxing
+  abortXHR(pjax.xhr)
+
+  pjax.options = options
+  var xhr = pjax.xhr = $.ajax(options)
+
+  if (xhr.readyState > 0) {
+    if (options.push && !options.replace) {
+      // Cache current container element before replacing it
+      cachePush(pjax.state.id, [options.container, cloneContents(context)])
+
+      window.history.pushState(null, "", options.requestUrl)
+    }
+
+    fire('pjax:start', [xhr, options])
+    fire('pjax:send', [xhr, options])
+  }
+
+  return pjax.xhr
+}
+
+// Public: Reload current page with pjax.
+//
+// Returns whatever $.pjax returns.
+function pjaxReload(container, options) {
+  var defaults = {
+    url: window.location.href,
+    push: false,
+    replace: true,
+    scrollTo: false
+  }
+
+  return pjax($.extend(defaults, optionsFor(container, options)))
+}
+
+// Internal: Hard replace current state with url.
+//
+// Work for around WebKit
+//   https://bugs.webkit.org/show_bug.cgi?id=93506
+//
+// Returns nothing.
+function locationReplace(url) {
+  window.history.replaceState(null, "", pjax.state.url)
+  window.location.replace(url)
+}
+
+
+var initialPop = true
+var initialURL = window.location.href
+var initialState = window.history.state
+
+// Initialize $.pjax.state if possible
+// Happens when reloading a page and coming forward from a different
+// session history.
+if (initialState && initialState.container) {
+  pjax.state = initialState
+}
+
+// Non-webkit browsers don't fire an initial popstate event
+if ('state' in window.history) {
+  initialPop = false
+}
+
+// popstate handler takes care of the back and forward buttons
+//
+// You probably shouldn't use pjax on pages with other pushState
+// stuff yet.
+function onPjaxPopstate(event) {
+
+  // Hitting back or forward should override any pending PJAX request.
+  if (!initialPop) {
+    abortXHR(pjax.xhr)
+  }
+
+  var previousState = pjax.state
+  var state = event.state
+  var direction
+
+  if (state && state.container) {
+    // When coming forward from a separate history session, will get an
+    // initial pop with a state we are already at. Skip reloading the current
+    // page.
+    if (initialPop && initialURL == state.url) return
+
+    if (previousState) {
+      // If popping back to the same state, just skip.
+      // Could be clicking back from hashchange rather than a pushState.
+      if (previousState.id === state.id) return
+
+      // Since state IDs always increase, we can deduce the navigation direction
+      direction = previousState.id < state.id ? 'forward' : 'back'
+    }
+
+    var cache = cacheMapping[state.id] || []
+    var containerSelector = cache[0] || state.container
+    var container = $(containerSelector), contents = cache[1]
+
+    if (container.length) {
+      if (previousState) {
+        // Cache current container before replacement and inform the
+        // cache which direction the history shifted.
+        cachePop(direction, previousState.id, [containerSelector, cloneContents(container)])
+      }
+
+      var popstateEvent = $.Event('pjax:popstate', {
+        state: state,
+        direction: direction
+      })
+      container.trigger(popstateEvent)
+
+      var options = {
+        id: state.id,
+        url: state.url,
+        container: containerSelector,
+        push: false,
+        fragment: state.fragment,
+        timeout: state.timeout,
+        scrollTo: false
+      }
+
+      if (contents) {
+        container.trigger('pjax:start', [null, options])
+
+        pjax.state = state
+        if (state.title) document.title = state.title
+        var beforeReplaceEvent = $.Event('pjax:beforeReplace', {
+          state: state,
+          previousState: previousState
+        })
+        container.trigger(beforeReplaceEvent, [contents, options])
+        container.html(contents)
+
+        container.trigger('pjax:end', [null, options])
+      } else {
+        pjax(options)
+      }
+
+      // Force reflow/relayout before the browser tries to restore the
+      // scroll position.
+      container[0].offsetHeight // eslint-disable-line no-unused-expressions
+    } else {
+      locationReplace(location.href)
+    }
+  }
+  initialPop = false
+}
+
+// Fallback version of main pjax function for browsers that don't
+// support pushState.
+//
+// Returns nothing since it retriggers a hard form submission.
+function fallbackPjax(options) {
+  var url = $.isFunction(options.url) ? options.url() : options.url,
+      method = options.type ? options.type.toUpperCase() : 'GET'
+
+  var form = $('<form>', {
+    method: method === 'GET' ? 'GET' : 'POST',
+    action: url,
+    style: 'display:none'
+  })
+
+  if (method !== 'GET' && method !== 'POST') {
+    form.append($('<input>', {
+      type: 'hidden',
+      name: '_method',
+      value: method.toLowerCase()
+    }))
+  }
+
+  var data = options.data
+  if (typeof data === 'string') {
+    $.each(data.split('&'), function(index, value) {
+      var pair = value.split('=')
+      form.append($('<input>', {type: 'hidden', name: pair[0], value: pair[1]}))
+    })
+  } else if ($.isArray(data)) {
+    $.each(data, function(index, value) {
+      form.append($('<input>', {type: 'hidden', name: value.name, value: value.value}))
+    })
+  } else if (typeof data === 'object') {
+    var key
+    for (key in data)
+      form.append($('<input>', {type: 'hidden', name: key, value: data[key]}))
+  }
+
+  $(document.body).append(form)
+  form.submit()
+}
+
+// Internal: Abort an XmlHttpRequest if it hasn't been completed,
+// also removing its event handlers.
+function abortXHR(xhr) {
+  if ( xhr && xhr.readyState < 4) {
+    xhr.onreadystatechange = $.noop
+    xhr.abort()
+  }
+}
+
+// Internal: Generate unique id for state object.
+//
+// Use a timestamp instead of a counter since ids should still be
+// unique across page loads.
+//
+// Returns Number.
+function uniqueId() {
+  return (new Date).getTime()
+}
+
+function cloneContents(container) {
+  var cloned = container.clone()
+  // Unmark script tags as already being eval'd so they can get executed again
+  // when restored from cache. HAXX: Uses jQuery internal method.
+  cloned.find('script').each(function(){
+    if (!this.src) $._data(this, 'globalEval', false)
+  })
+  return cloned.contents()
+}
+
+// Internal: Strip internal query params from parsed URL.
+//
+// Returns sanitized url.href String.
+function stripInternalParams(url) {
+  url.search = url.search.replace(/([?&])(_pjax|_)=[^&]*/g, '').replace(/^&/, '')
+  return url.href.replace(/\?($|#)/, '$1')
+}
+
+// Internal: Parse URL components and returns a Locationish object.
+//
+// url - String URL
+//
+// Returns HTMLAnchorElement that acts like Location.
+function parseURL(url) {
+  var a = document.createElement('a')
+  a.href = url
+  return a
+}
+
+// Internal: Return the `href` component of given URL object with the hash
+// portion removed.
+//
+// location - Location or HTMLAnchorElement
+//
+// Returns String
+function stripHash(location) {
+  return location.href.replace(/#.*/, '')
+}
+
+// Internal: Build options Object for arguments.
+//
+// For convenience the first parameter can be either the container or
+// the options object.
+//
+// Examples
+//
+//   optionsFor('#container')
+//   // => {container: '#container'}
+//
+//   optionsFor('#container', {push: true})
+//   // => {container: '#container', push: true}
+//
+//   optionsFor({container: '#container', push: true})
+//   // => {container: '#container', push: true}
+//
+// Returns options Object.
+function optionsFor(container, options) {
+  if (container && options) {
+    options = $.extend({}, options)
+    options.container = container
+    return options
+  } else if ($.isPlainObject(container)) {
+    return container
+  } else {
+    return {container: container}
+  }
+}
+
+// Internal: Filter and find all elements matching the selector.
+//
+// Where $.fn.find only matches descendants, findAll will test all the
+// top level elements in the jQuery object as well.
+//
+// elems    - jQuery object of Elements
+// selector - String selector to match
+//
+// Returns a jQuery object.
+function findAll(elems, selector) {
+  return elems.filter(selector).add(elems.find(selector))
+}
+
+function parseHTML(html) {
+  return $.parseHTML(html, document, true)
+}
+
+// Internal: Extracts container and metadata from response.
+//
+// 1. Extracts X-PJAX-URL header if set
+// 2. Extracts inline <title> tags
+// 3. Builds response Element and extracts fragment if set
+//
+// data    - String response data
+// xhr     - XHR response
+// options - pjax options Object
+//
+// Returns an Object with url, title, and contents keys.
+function extractContainer(data, xhr, options) {
+  var obj = {}, fullDocument = /<html/i.test(data)
+
+  // Prefer X-PJAX-URL header if it was set, otherwise fallback to
+  // using the original requested url.
+  var serverUrl = xhr.getResponseHeader('X-PJAX-URL')
+  obj.url = serverUrl ? stripInternalParams(parseURL(serverUrl)) : options.requestUrl
+
+  var $head, $body
+  // Attempt to parse response html into elements
+  if (fullDocument) {
+    $body = $(parseHTML(data.match(/<body[^>]*>([\s\S.]*)<\/body>/i)[0]))
+    var head = data.match(/<head[^>]*>([\s\S.]*)<\/head>/i)
+    $head = head != null ? $(parseHTML(head[0])) : $body
+  } else {
+    $head = $body = $(parseHTML(data))
+  }
+
+  // If response data is empty, return fast
+  if ($body.length === 0)
+    return obj
+
+  // If there's a <title> tag in the header, use it as
+  // the page's title.
+  obj.title = findAll($head, 'title').last().text()
+
+  if (options.fragment) {
+    var $fragment = $body
+    // If they specified a fragment, look for it in the response
+    // and pull it out.
+    if (options.fragment !== 'body') {
+      $fragment = findAll($fragment, options.fragment).first()
+    }
+
+    if ($fragment.length) {
+      obj.contents = options.fragment === 'body' ? $fragment : $fragment.contents()
+
+      // If there's no title, look for data-title and title attributes
+      // on the fragment
+      if (!obj.title)
+        obj.title = $fragment.attr('title') || $fragment.data('title')
+    }
+
+  } else if (!fullDocument) {
+    obj.contents = $body
+  }
+
+  // Clean up any <title> tags
+  if (obj.contents) {
+    // Remove any parent title elements
+    obj.contents = obj.contents.not(function() { return $(this).is('title') })
+
+    // Then scrub any titles from their descendants
+    obj.contents.find('title').remove()
+
+    // Gather all script[src] elements
+    obj.scripts = findAll(obj.contents, 'script[src]').remove()
+    obj.contents = obj.contents.not(obj.scripts)
+  }
+
+  // Trim any whitespace off the title
+  if (obj.title) obj.title = $.trim(obj.title)
+
+  return obj
+}
+
+// Load an execute scripts using standard script request.
+//
+// Avoids jQuery's traditional $.getScript which does a XHR request and
+// globalEval.
+//
+// scripts - jQuery object of script Elements
+//
+// Returns nothing.
+function executeScriptTags(scripts) {
+  if (!scripts) return
+
+  var existingScripts = $('script[src]')
+
+  scripts.each(function() {
+    var src = this.src
+    var matchedScripts = existingScripts.filter(function() {
+      return this.src === src
+    })
+    if (matchedScripts.length) return
+
+    var script = document.createElement('script')
+    var type = $(this).attr('type')
+    if (type) script.type = type
+    script.src = $(this).attr('src')
+    document.head.appendChild(script)
+  })
+}
+
+// Internal: History DOM caching class.
+var cacheMapping      = {}
+var cacheForwardStack = []
+var cacheBackStack    = []
+
+// Push previous state id and container contents into the history
+// cache. Should be called in conjunction with `pushState` to save the
+// previous container contents.
+//
+// id    - State ID Number
+// value - DOM Element to cache
+//
+// Returns nothing.
+function cachePush(id, value) {
+  cacheMapping[id] = value
+  cacheBackStack.push(id)
+
+  // Remove all entries in forward history stack after pushing a new page.
+  trimCacheStack(cacheForwardStack, 0)
+
+  // Trim back history stack to max cache length.
+  trimCacheStack(cacheBackStack, pjax.defaults.maxCacheLength)
+}
+
+// Shifts cache from directional history cache. Should be
+// called on `popstate` with the previous state id and container
+// contents.
+//
+// direction - "forward" or "back" String
+// id        - State ID Number
+// value     - DOM Element to cache
+//
+// Returns nothing.
+function cachePop(direction, id, value) {
+  var pushStack, popStack
+  cacheMapping[id] = value
+
+  if (direction === 'forward') {
+    pushStack = cacheBackStack
+    popStack  = cacheForwardStack
+  } else {
+    pushStack = cacheForwardStack
+    popStack  = cacheBackStack
+  }
+
+  pushStack.push(id)
+  id = popStack.pop()
+  if (id) delete cacheMapping[id]
+
+  // Trim whichever stack we just pushed to to max cache length.
+  trimCacheStack(pushStack, pjax.defaults.maxCacheLength)
+}
+
+// Trim a cache stack (either cacheBackStack or cacheForwardStack) to be no
+// longer than the specified length, deleting cached DOM elements as necessary.
+//
+// stack  - Array of state IDs
+// length - Maximum length to trim to
+//
+// Returns nothing.
+function trimCacheStack(stack, length) {
+  while (stack.length > length)
+    delete cacheMapping[stack.shift()]
+}
+
+// Public: Find version identifier for the initial page load.
+//
+// Returns String version or undefined.
+function findVersion() {
+  return $('meta').filter(function() {
+    var name = $(this).attr('http-equiv')
+    return name && name.toUpperCase() === 'X-PJAX-VERSION'
+  }).attr('content')
+}
+
+// Install pjax functions on $.pjax to enable pushState behavior.
+//
+// Does nothing if already enabled.
+//
+// Examples
+//
+//     $.pjax.enable()
+//
+// Returns nothing.
+function enable() {
+  $.fn.pjax = fnPjax
+  $.pjax = pjax
+  $.pjax.enable = $.noop
+  $.pjax.disable = disable
+  $.pjax.click = handleClick
+  $.pjax.submit = handleSubmit
+  $.pjax.reload = pjaxReload
+  $.pjax.defaults = {
+    timeout: 650,
+    push: true,
+    replace: false,
+    type: 'GET',
+    dataType: 'html',
+    scrollTo: 0,
+    maxCacheLength: 20,
+    version: findVersion
+  }
+  $(window).on('popstate.pjax', onPjaxPopstate)
+}
+
+// Disable pushState behavior.
+//
+// This is the case when a browser doesn't support pushState. It is
+// sometimes useful to disable pushState for debugging on a modern
+// browser.
+//
+// Examples
+//
+//     $.pjax.disable()
+//
+// Returns nothing.
+function disable() {
+  $.fn.pjax = function() { return this }
+  $.pjax = fallbackPjax
+  $.pjax.enable = enable
+  $.pjax.disable = $.noop
+  $.pjax.click = $.noop
+  $.pjax.submit = $.noop
+  $.pjax.reload = function() { window.location.reload() }
+
+  $(window).off('popstate.pjax', onPjaxPopstate)
+}
+
+
+// Add the state property to jQuery's event object so we can use it in
+// $(window).bind('popstate')
+if ($.event.props && $.inArray('state', $.event.props) < 0) {
+  $.event.props.push('state')
+} else if (!('state' in $.Event.prototype)) {
+  $.event.addProp('state')
+}
+
+// Is pjax supported by this browser?
+$.support.pjax =
+  window.history && window.history.pushState && window.history.replaceState &&
+  // pushState isn't reliable on iOS until 5.
+  !navigator.userAgent.match(/((iPod|iPhone|iPad).+\bOS\s+[1-4]\D|WebApps\/.+CFNetwork)/)
+
+if ($.support.pjax) {
+  enable()
+} else {
+  disable()
+}
+
+})(jQuery)
+
+
+/***/ }),
+
+/***/ "./node_modules/_jquery@3.4.0@jquery/dist/jquery.js":
 /*!**********************************************************!*\
-  !*** ./node_modules/_jquery@3.3.1@jquery/dist/jquery.js ***!
+  !*** ./node_modules/_jquery@3.4.0@jquery/dist/jquery.js ***!
   \**********************************************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
- * jQuery JavaScript Library v3.3.1
+ * jQuery JavaScript Library v3.4.0
  * https://jquery.com/
  *
  * Includes Sizzle.js
@@ -6249,7 +7163,7 @@ var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
  * Released under the MIT license
  * https://jquery.org/license
  *
- * Date: 2018-01-20T17:24Z
+ * Date: 2019-04-10T19:48Z
  */
 ( function( global, factory ) {
 
@@ -6331,20 +7245,33 @@ var isWindow = function isWindow( obj ) {
 	var preservedScriptAttributes = {
 		type: true,
 		src: true,
+		nonce: true,
 		noModule: true
 	};
 
-	function DOMEval( code, doc, node ) {
+	function DOMEval( code, node, doc ) {
 		doc = doc || document;
 
-		var i,
+		var i, val,
 			script = doc.createElement( "script" );
 
 		script.text = code;
 		if ( node ) {
 			for ( i in preservedScriptAttributes ) {
-				if ( node[ i ] ) {
-					script[ i ] = node[ i ];
+
+				// Support: Firefox 64+, Edge 18+
+				// Some browsers don't support the "nonce" property on scripts.
+				// On the other hand, just using `getAttribute` is not enough as
+				// the `nonce` attribute is reset to an empty string whenever it
+				// becomes browsing-context connected.
+				// See https://github.com/whatwg/html/issues/2369
+				// See https://html.spec.whatwg.org/#nonce-attributes
+				// The `node.getAttribute` check was added for the sake of
+				// `jQuery.globalEval` so that it can fake a nonce-containing node
+				// via an object.
+				val = node[ i ] || node.getAttribute && node.getAttribute( i );
+				if ( val ) {
+					script.setAttribute( i, val );
 				}
 			}
 		}
@@ -6369,7 +7296,7 @@ function toType( obj ) {
 
 
 var
-	version = "3.3.1",
+	version = "3.4.0",
 
 	// Define a local copy of jQuery
 	jQuery = function( selector, context ) {
@@ -6498,25 +7425,28 @@ jQuery.extend = jQuery.fn.extend = function() {
 
 			// Extend the base object
 			for ( name in options ) {
-				src = target[ name ];
 				copy = options[ name ];
 
+				// Prevent Object.prototype pollution
 				// Prevent never-ending loop
-				if ( target === copy ) {
+				if ( name === "__proto__" || target === copy ) {
 					continue;
 				}
 
 				// Recurse if we're merging plain objects or arrays
 				if ( deep && copy && ( jQuery.isPlainObject( copy ) ||
 					( copyIsArray = Array.isArray( copy ) ) ) ) {
+					src = target[ name ];
 
-					if ( copyIsArray ) {
-						copyIsArray = false;
-						clone = src && Array.isArray( src ) ? src : [];
-
+					// Ensure proper type for the source value
+					if ( copyIsArray && !Array.isArray( src ) ) {
+						clone = [];
+					} else if ( !copyIsArray && !jQuery.isPlainObject( src ) ) {
+						clone = {};
 					} else {
-						clone = src && jQuery.isPlainObject( src ) ? src : {};
+						clone = src;
 					}
+					copyIsArray = false;
 
 					// Never move original objects, clone them
 					target[ name ] = jQuery.extend( deep, clone, copy );
@@ -6569,9 +7499,6 @@ jQuery.extend( {
 	},
 
 	isEmptyObject: function( obj ) {
-
-		/* eslint-disable no-unused-vars */
-		// See https://github.com/eslint/eslint/issues/6125
 		var name;
 
 		for ( name in obj ) {
@@ -6581,8 +7508,8 @@ jQuery.extend( {
 	},
 
 	// Evaluates a script in a global context
-	globalEval: function( code ) {
-		DOMEval( code );
+	globalEval: function( code, options ) {
+		DOMEval( code, { nonce: options && options.nonce } );
 	},
 
 	each: function( obj, callback ) {
@@ -6738,14 +7665,14 @@ function isArrayLike( obj ) {
 }
 var Sizzle =
 /*!
- * Sizzle CSS Selector Engine v2.3.3
+ * Sizzle CSS Selector Engine v2.3.4
  * https://sizzlejs.com/
  *
- * Copyright jQuery Foundation and other contributors
+ * Copyright JS Foundation and other contributors
  * Released under the MIT license
- * http://jquery.org/license
+ * https://js.foundation/
  *
- * Date: 2016-08-08
+ * Date: 2019-04-08
  */
 (function( window ) {
 
@@ -6779,6 +7706,7 @@ var i,
 	classCache = createCache(),
 	tokenCache = createCache(),
 	compilerCache = createCache(),
+	nonnativeSelectorCache = createCache(),
 	sortOrder = function( a, b ) {
 		if ( a === b ) {
 			hasDuplicate = true;
@@ -6840,8 +7768,7 @@ var i,
 
 	rcomma = new RegExp( "^" + whitespace + "*," + whitespace + "*" ),
 	rcombinators = new RegExp( "^" + whitespace + "*([>+~]|" + whitespace + ")" + whitespace + "*" ),
-
-	rattributeQuotes = new RegExp( "=" + whitespace + "*([^\\]'\"]*?)" + whitespace + "*\\]", "g" ),
+	rdescend = new RegExp( whitespace + "|>" ),
 
 	rpseudo = new RegExp( pseudos ),
 	ridentifier = new RegExp( "^" + identifier + "$" ),
@@ -6862,6 +7789,7 @@ var i,
 			whitespace + "*((?:-\\d)?\\d*)" + whitespace + "*\\)|)(?=[^-]|$)", "i" )
 	},
 
+	rhtml = /HTML$/i,
 	rinputs = /^(?:input|select|textarea|button)$/i,
 	rheader = /^h\d$/i,
 
@@ -6916,9 +7844,9 @@ var i,
 		setDocument();
 	},
 
-	disabledAncestor = addCombinator(
+	inDisabledFieldset = addCombinator(
 		function( elem ) {
-			return elem.disabled === true && ("form" in elem || "label" in elem);
+			return elem.disabled === true && elem.nodeName.toLowerCase() === "fieldset";
 		},
 		{ dir: "parentNode", next: "legend" }
 	);
@@ -7031,18 +7959,22 @@ function Sizzle( selector, context, results, seed ) {
 
 			// Take advantage of querySelectorAll
 			if ( support.qsa &&
-				!compilerCache[ selector + " " ] &&
-				(!rbuggyQSA || !rbuggyQSA.test( selector )) ) {
+				!nonnativeSelectorCache[ selector + " " ] &&
+				(!rbuggyQSA || !rbuggyQSA.test( selector )) &&
 
-				if ( nodeType !== 1 ) {
-					newContext = context;
-					newSelector = selector;
-
-				// qSA looks outside Element context, which is not what we want
-				// Thanks to Andrew Dupont for this workaround technique
-				// Support: IE <=8
+				// Support: IE 8 only
 				// Exclude object elements
-				} else if ( context.nodeName.toLowerCase() !== "object" ) {
+				(nodeType !== 1 || context.nodeName.toLowerCase() !== "object") ) {
+
+				newSelector = selector;
+				newContext = context;
+
+				// qSA considers elements outside a scoping root when evaluating child or
+				// descendant combinators, which is not what we want.
+				// In such cases, we work around the behavior by prefixing every selector in the
+				// list with an ID selector referencing the scope context.
+				// Thanks to Andrew Dupont for this technique.
+				if ( nodeType === 1 && rdescend.test( selector ) ) {
 
 					// Capture the context ID, setting it first if necessary
 					if ( (nid = context.getAttribute( "id" )) ) {
@@ -7064,17 +7996,16 @@ function Sizzle( selector, context, results, seed ) {
 						context;
 				}
 
-				if ( newSelector ) {
-					try {
-						push.apply( results,
-							newContext.querySelectorAll( newSelector )
-						);
-						return results;
-					} catch ( qsaError ) {
-					} finally {
-						if ( nid === expando ) {
-							context.removeAttribute( "id" );
-						}
+				try {
+					push.apply( results,
+						newContext.querySelectorAll( newSelector )
+					);
+					return results;
+				} catch ( qsaError ) {
+					nonnativeSelectorCache( selector, true );
+				} finally {
+					if ( nid === expando ) {
+						context.removeAttribute( "id" );
 					}
 				}
 			}
@@ -7238,7 +8169,7 @@ function createDisabledPseudo( disabled ) {
 					// Where there is no isDisabled, check manually
 					/* jshint -W018 */
 					elem.isDisabled !== !disabled &&
-						disabledAncestor( elem ) === disabled;
+						inDisabledFieldset( elem ) === disabled;
 			}
 
 			return elem.disabled === disabled;
@@ -7295,10 +8226,13 @@ support = Sizzle.support = {};
  * @returns {Boolean} True iff elem is a non-HTML XML node
  */
 isXML = Sizzle.isXML = function( elem ) {
-	// documentElement is verified for cases where it doesn't yet exist
-	// (such as loading iframes in IE - #4833)
-	var documentElement = elem && (elem.ownerDocument || elem).documentElement;
-	return documentElement ? documentElement.nodeName !== "HTML" : false;
+	var namespace = elem.namespaceURI,
+		docElem = (elem.ownerDocument || elem).documentElement;
+
+	// Support: IE <=8
+	// Assume HTML when documentElement doesn't yet exist, such as inside loading iframes
+	// https://bugs.jquery.com/ticket/4833
+	return !rhtml.test( namespace || docElem && docElem.nodeName || "HTML" );
 };
 
 /**
@@ -7720,11 +8654,8 @@ Sizzle.matchesSelector = function( elem, expr ) {
 		setDocument( elem );
 	}
 
-	// Make sure that attribute selectors are quoted
-	expr = expr.replace( rattributeQuotes, "='$1']" );
-
 	if ( support.matchesSelector && documentIsHTML &&
-		!compilerCache[ expr + " " ] &&
+		!nonnativeSelectorCache[ expr + " " ] &&
 		( !rbuggyMatches || !rbuggyMatches.test( expr ) ) &&
 		( !rbuggyQSA     || !rbuggyQSA.test( expr ) ) ) {
 
@@ -7738,7 +8669,9 @@ Sizzle.matchesSelector = function( elem, expr ) {
 					elem.document && elem.document.nodeType !== 11 ) {
 				return ret;
 			}
-		} catch (e) {}
+		} catch (e) {
+			nonnativeSelectorCache( expr, true );
+		}
 	}
 
 	return Sizzle( expr, document, null, [ elem ] ).length > 0;
@@ -8197,7 +9130,7 @@ Expr = Sizzle.selectors = {
 		"contains": markFunction(function( text ) {
 			text = text.replace( runescape, funescape );
 			return function( elem ) {
-				return ( elem.textContent || elem.innerText || getText( elem ) ).indexOf( text ) > -1;
+				return ( elem.textContent || getText( elem ) ).indexOf( text ) > -1;
 			};
 		}),
 
@@ -8336,7 +9269,11 @@ Expr = Sizzle.selectors = {
 		}),
 
 		"lt": createPositionalPseudo(function( matchIndexes, length, argument ) {
-			var i = argument < 0 ? argument + length : argument;
+			var i = argument < 0 ?
+				argument + length :
+				argument > length ?
+					length :
+					argument;
 			for ( ; --i >= 0; ) {
 				matchIndexes.push( i );
 			}
@@ -9386,18 +10323,18 @@ jQuery.each( {
 		return siblings( elem.firstChild );
 	},
 	contents: function( elem ) {
-        if ( nodeName( elem, "iframe" ) ) {
-            return elem.contentDocument;
-        }
+		if ( typeof elem.contentDocument !== "undefined" ) {
+			return elem.contentDocument;
+		}
 
-        // Support: IE 9 - 11 only, iOS 7 only, Android Browser <=4.3 only
-        // Treat the template element as a regular one in browsers that
-        // don't support it.
-        if ( nodeName( elem, "template" ) ) {
-            elem = elem.content || elem;
-        }
+		// Support: IE 9 - 11 only, iOS 7 only, Android Browser <=4.3 only
+		// Treat the template element as a regular one in browsers that
+		// don't support it.
+		if ( nodeName( elem, "template" ) ) {
+			elem = elem.content || elem;
+		}
 
-        return jQuery.merge( [], elem.childNodes );
+		return jQuery.merge( [], elem.childNodes );
 	}
 }, function( name, fn ) {
 	jQuery.fn[ name ] = function( until, selector ) {
@@ -10706,6 +11643,22 @@ var rcssNum = new RegExp( "^(?:([+-])=|)(" + pnum + ")([a-z%]*)$", "i" );
 
 var cssExpand = [ "Top", "Right", "Bottom", "Left" ];
 
+var documentElement = document.documentElement;
+
+
+
+	var isAttached = function( elem ) {
+			return jQuery.contains( elem.ownerDocument, elem );
+		},
+		composed = { composed: true };
+
+	// Check attachment across shadow DOM boundaries when possible (gh-3504)
+	if ( documentElement.attachShadow ) {
+		isAttached = function( elem ) {
+			return jQuery.contains( elem.ownerDocument, elem ) ||
+				elem.getRootNode( composed ) === elem.ownerDocument;
+		};
+	}
 var isHiddenWithinTree = function( elem, el ) {
 
 		// isHiddenWithinTree might be called from jQuery#filter function;
@@ -10720,7 +11673,7 @@ var isHiddenWithinTree = function( elem, el ) {
 			// Support: Firefox <=43 - 45
 			// Disconnected elements can have computed display: none, so first confirm that elem is
 			// in the document.
-			jQuery.contains( elem.ownerDocument, elem ) &&
+			isAttached( elem ) &&
 
 			jQuery.css( elem, "display" ) === "none";
 	};
@@ -10762,7 +11715,8 @@ function adjustCSS( elem, prop, valueParts, tween ) {
 		unit = valueParts && valueParts[ 3 ] || ( jQuery.cssNumber[ prop ] ? "" : "px" ),
 
 		// Starting value computation is required for potential unit mismatches
-		initialInUnit = ( jQuery.cssNumber[ prop ] || unit !== "px" && +initial ) &&
+		initialInUnit = elem.nodeType &&
+			( jQuery.cssNumber[ prop ] || unit !== "px" && +initial ) &&
 			rcssNum.exec( jQuery.css( elem, prop ) );
 
 	if ( initialInUnit && initialInUnit[ 3 ] !== unit ) {
@@ -10909,7 +11863,7 @@ jQuery.fn.extend( {
 } );
 var rcheckableType = ( /^(?:checkbox|radio)$/i );
 
-var rtagName = ( /<([a-z][^\/\0>\x20\t\r\n\f]+)/i );
+var rtagName = ( /<([a-z][^\/\0>\x20\t\r\n\f]*)/i );
 
 var rscriptType = ( /^$|^module$|\/(?:java|ecma)script/i );
 
@@ -10981,7 +11935,7 @@ function setGlobalEval( elems, refElements ) {
 var rhtml = /<|&#?\w+;/;
 
 function buildFragment( elems, context, scripts, selection, ignored ) {
-	var elem, tmp, tag, wrap, contains, j,
+	var elem, tmp, tag, wrap, attached, j,
 		fragment = context.createDocumentFragment(),
 		nodes = [],
 		i = 0,
@@ -11045,13 +11999,13 @@ function buildFragment( elems, context, scripts, selection, ignored ) {
 			continue;
 		}
 
-		contains = jQuery.contains( elem.ownerDocument, elem );
+		attached = isAttached( elem );
 
 		// Append to fragment
 		tmp = getAll( fragment.appendChild( elem ), "script" );
 
 		// Preserve script evaluation history
-		if ( contains ) {
+		if ( attached ) {
 			setGlobalEval( tmp );
 		}
 
@@ -11094,8 +12048,6 @@ function buildFragment( elems, context, scripts, selection, ignored ) {
 	div.innerHTML = "<textarea>x</textarea>";
 	support.noCloneChecked = !!div.cloneNode( true ).lastChild.defaultValue;
 } )();
-var documentElement = document.documentElement;
-
 
 
 var
@@ -11111,8 +12063,19 @@ function returnFalse() {
 	return false;
 }
 
+// Support: IE <=9 - 11+
+// focus() and blur() are asynchronous, except when they are no-op.
+// So expect focus to be synchronous when the element is already active,
+// and blur to be synchronous when the element is not already active.
+// (focus and blur are always synchronous in other supported browsers,
+// this just defines when we can count on it).
+function expectSync( elem, type ) {
+	return ( elem === safeActiveElement() ) === ( type === "focus" );
+}
+
 // Support: IE <=9 only
-// See #13393 for more info
+// Accessing document.activeElement can throw unexpectedly
+// https://bugs.jquery.com/ticket/13393
 function safeActiveElement() {
 	try {
 		return document.activeElement;
@@ -11412,9 +12375,10 @@ jQuery.event = {
 			while ( ( handleObj = matched.handlers[ j++ ] ) &&
 				!event.isImmediatePropagationStopped() ) {
 
-				// Triggered event must either 1) have no namespace, or 2) have namespace(s)
-				// a subset or equal to those in the bound event (both can have no namespace).
-				if ( !event.rnamespace || event.rnamespace.test( handleObj.namespace ) ) {
+				// If the event is namespaced, then each handler is only invoked if it is
+				// specially universal or its namespaces are a superset of the event's.
+				if ( !event.rnamespace || handleObj.namespace === false ||
+					event.rnamespace.test( handleObj.namespace ) ) {
 
 					event.handleObj = handleObj;
 					event.data = handleObj.data;
@@ -11538,39 +12502,53 @@ jQuery.event = {
 			// Prevent triggered image.load events from bubbling to window.load
 			noBubble: true
 		},
-		focus: {
-
-			// Fire native event if possible so blur/focus sequence is correct
-			trigger: function() {
-				if ( this !== safeActiveElement() && this.focus ) {
-					this.focus();
-					return false;
-				}
-			},
-			delegateType: "focusin"
-		},
-		blur: {
-			trigger: function() {
-				if ( this === safeActiveElement() && this.blur ) {
-					this.blur();
-					return false;
-				}
-			},
-			delegateType: "focusout"
-		},
 		click: {
 
-			// For checkbox, fire native event so checked state will be right
-			trigger: function() {
-				if ( this.type === "checkbox" && this.click && nodeName( this, "input" ) ) {
-					this.click();
-					return false;
+			// Utilize native event to ensure correct state for checkable inputs
+			setup: function( data ) {
+
+				// For mutual compressibility with _default, replace `this` access with a local var.
+				// `|| data` is dead code meant only to preserve the variable through minification.
+				var el = this || data;
+
+				// Claim the first handler
+				if ( rcheckableType.test( el.type ) &&
+					el.click && nodeName( el, "input" ) &&
+					dataPriv.get( el, "click" ) === undefined ) {
+
+					// dataPriv.set( el, "click", ... )
+					leverageNative( el, "click", returnTrue );
 				}
+
+				// Return false to allow normal processing in the caller
+				return false;
+			},
+			trigger: function( data ) {
+
+				// For mutual compressibility with _default, replace `this` access with a local var.
+				// `|| data` is dead code meant only to preserve the variable through minification.
+				var el = this || data;
+
+				// Force setup before triggering a click
+				if ( rcheckableType.test( el.type ) &&
+					el.click && nodeName( el, "input" ) &&
+					dataPriv.get( el, "click" ) === undefined ) {
+
+					leverageNative( el, "click" );
+				}
+
+				// Return non-false to allow normal event-path propagation
+				return true;
 			},
 
-			// For cross-browser consistency, don't fire native .click() on links
+			// For cross-browser consistency, suppress native .click() on links
+			// Also prevent it if we're currently inside a leveraged native-event stack
 			_default: function( event ) {
-				return nodeName( event.target, "a" );
+				var target = event.target;
+				return rcheckableType.test( target.type ) &&
+					target.click && nodeName( target, "input" ) &&
+					dataPriv.get( target, "click" ) ||
+					nodeName( target, "a" );
 			}
 		},
 
@@ -11586,6 +12564,85 @@ jQuery.event = {
 		}
 	}
 };
+
+// Ensure the presence of an event listener that handles manually-triggered
+// synthetic events by interrupting progress until reinvoked in response to
+// *native* events that it fires directly, ensuring that state changes have
+// already occurred before other listeners are invoked.
+function leverageNative( el, type, expectSync ) {
+
+	// Missing expectSync indicates a trigger call, which must force setup through jQuery.event.add
+	if ( !expectSync ) {
+		jQuery.event.add( el, type, returnTrue );
+		return;
+	}
+
+	// Register the controller as a special universal handler for all event namespaces
+	dataPriv.set( el, type, false );
+	jQuery.event.add( el, type, {
+		namespace: false,
+		handler: function( event ) {
+			var notAsync, result,
+				saved = dataPriv.get( this, type );
+
+			if ( ( event.isTrigger & 1 ) && this[ type ] ) {
+
+				// Interrupt processing of the outer synthetic .trigger()ed event
+				if ( !saved ) {
+
+					// Store arguments for use when handling the inner native event
+					saved = slice.call( arguments );
+					dataPriv.set( this, type, saved );
+
+					// Trigger the native event and capture its result
+					// Support: IE <=9 - 11+
+					// focus() and blur() are asynchronous
+					notAsync = expectSync( this, type );
+					this[ type ]();
+					result = dataPriv.get( this, type );
+					if ( saved !== result || notAsync ) {
+						dataPriv.set( this, type, false );
+					} else {
+						result = undefined;
+					}
+					if ( saved !== result ) {
+
+						// Cancel the outer synthetic event
+						event.stopImmediatePropagation();
+						event.preventDefault();
+						return result;
+					}
+
+				// If this is an inner synthetic event for an event with a bubbling surrogate
+				// (focus or blur), assume that the surrogate already propagated from triggering the
+				// native event and prevent that from happening again here.
+				// This technically gets the ordering wrong w.r.t. to `.trigger()` (in which the
+				// bubbling surrogate propagates *after* the non-bubbling base), but that seems
+				// less bad than duplication.
+				} else if ( ( jQuery.event.special[ type ] || {} ).delegateType ) {
+					event.stopPropagation();
+				}
+
+			// If this is a native event triggered above, everything is now in order
+			// Fire an inner synthetic event with the original arguments
+			} else if ( saved ) {
+
+				// ...and capture the result
+				dataPriv.set( this, type, jQuery.event.trigger(
+
+					// Support: IE <=9 - 11+
+					// Extend with the prototype to reset the above stopImmediatePropagation()
+					jQuery.extend( saved.shift(), jQuery.Event.prototype ),
+					saved,
+					this
+				) );
+
+				// Abort handling of the native event
+				event.stopImmediatePropagation();
+			}
+		}
+	} );
+}
 
 jQuery.removeEvent = function( elem, type, handle ) {
 
@@ -11699,6 +12756,7 @@ jQuery.each( {
 	shiftKey: true,
 	view: true,
 	"char": true,
+	code: true,
 	charCode: true,
 	key: true,
 	keyCode: true,
@@ -11744,6 +12802,33 @@ jQuery.each( {
 		return event.which;
 	}
 }, jQuery.event.addProp );
+
+jQuery.each( { focus: "focusin", blur: "focusout" }, function( type, delegateType ) {
+	jQuery.event.special[ type ] = {
+
+		// Utilize native event if possible so blur/focus sequence is correct
+		setup: function() {
+
+			// Claim the first handler
+			// dataPriv.set( this, "focus", ... )
+			// dataPriv.set( this, "blur", ... )
+			leverageNative( this, type, expectSync );
+
+			// Return false to allow normal processing in the caller
+			return false;
+		},
+		trigger: function() {
+
+			// Force setup before trigger
+			leverageNative( this, type );
+
+			// Return non-false to allow normal event-path propagation
+			return true;
+		},
+
+		delegateType: delegateType
+	};
+} );
 
 // Create mouseenter/leave events using mouseover/out and event-time checks
 // so that event delegation works in jQuery.
@@ -11995,11 +13080,13 @@ function domManip( collection, args, callback, ignored ) {
 						if ( node.src && ( node.type || "" ).toLowerCase()  !== "module" ) {
 
 							// Optional AJAX dependency, but won't run scripts if not present
-							if ( jQuery._evalUrl ) {
-								jQuery._evalUrl( node.src );
+							if ( jQuery._evalUrl && !node.noModule ) {
+								jQuery._evalUrl( node.src, {
+									nonce: node.nonce || node.getAttribute( "nonce" )
+								} );
 							}
 						} else {
-							DOMEval( node.textContent.replace( rcleanScript, "" ), doc, node );
+							DOMEval( node.textContent.replace( rcleanScript, "" ), node, doc );
 						}
 					}
 				}
@@ -12021,7 +13108,7 @@ function remove( elem, selector, keepData ) {
 		}
 
 		if ( node.parentNode ) {
-			if ( keepData && jQuery.contains( node.ownerDocument, node ) ) {
+			if ( keepData && isAttached( node ) ) {
 				setGlobalEval( getAll( node, "script" ) );
 			}
 			node.parentNode.removeChild( node );
@@ -12039,7 +13126,7 @@ jQuery.extend( {
 	clone: function( elem, dataAndEvents, deepDataAndEvents ) {
 		var i, l, srcElements, destElements,
 			clone = elem.cloneNode( true ),
-			inPage = jQuery.contains( elem.ownerDocument, elem );
+			inPage = isAttached( elem );
 
 		// Fix IE cloning issues
 		if ( !support.noCloneChecked && ( elem.nodeType === 1 || elem.nodeType === 11 ) &&
@@ -12335,8 +13422,10 @@ var rboxStyle = new RegExp( cssExpand.join( "|" ), "i" );
 
 		// Support: IE 9 only
 		// Detect overflow:scroll screwiness (gh-3699)
+		// Support: Chrome <=64
+		// Don't get tricked when zoom affects offsetWidth (gh-4029)
 		div.style.position = "absolute";
-		scrollboxSizeVal = div.offsetWidth === 36 || "absolute";
+		scrollboxSizeVal = roundPixelMeasures( div.offsetWidth / 3 ) === 12;
 
 		documentElement.removeChild( container );
 
@@ -12407,7 +13496,7 @@ function curCSS( elem, name, computed ) {
 	if ( computed ) {
 		ret = computed.getPropertyValue( name ) || computed[ name ];
 
-		if ( ret === "" && !jQuery.contains( elem.ownerDocument, elem ) ) {
+		if ( ret === "" && !isAttached( elem ) ) {
 			ret = jQuery.style( elem, name );
 		}
 
@@ -12463,29 +13552,12 @@ function addGetHookIf( conditionFn, hookFn ) {
 }
 
 
-var
+var cssPrefixes = [ "Webkit", "Moz", "ms" ],
+	emptyStyle = document.createElement( "div" ).style,
+	vendorProps = {};
 
-	// Swappable if display is none or starts with table
-	// except "table", "table-cell", or "table-caption"
-	// See here for display values: https://developer.mozilla.org/en-US/docs/CSS/display
-	rdisplayswap = /^(none|table(?!-c[ea]).+)/,
-	rcustomProp = /^--/,
-	cssShow = { position: "absolute", visibility: "hidden", display: "block" },
-	cssNormalTransform = {
-		letterSpacing: "0",
-		fontWeight: "400"
-	},
-
-	cssPrefixes = [ "Webkit", "Moz", "ms" ],
-	emptyStyle = document.createElement( "div" ).style;
-
-// Return a css property mapped to a potentially vendor prefixed property
+// Return a vendor-prefixed property or undefined
 function vendorPropName( name ) {
-
-	// Shortcut for names that are not vendor prefixed
-	if ( name in emptyStyle ) {
-		return name;
-	}
 
 	// Check for vendor prefixed names
 	var capName = name[ 0 ].toUpperCase() + name.slice( 1 ),
@@ -12499,15 +13571,32 @@ function vendorPropName( name ) {
 	}
 }
 
-// Return a property mapped along what jQuery.cssProps suggests or to
-// a vendor prefixed property.
+// Return a potentially-mapped jQuery.cssProps or vendor prefixed property
 function finalPropName( name ) {
-	var ret = jQuery.cssProps[ name ];
-	if ( !ret ) {
-		ret = jQuery.cssProps[ name ] = vendorPropName( name ) || name;
+	var final = jQuery.cssProps[ name ] || vendorProps[ name ];
+
+	if ( final ) {
+		return final;
 	}
-	return ret;
+	if ( name in emptyStyle ) {
+		return name;
+	}
+	return vendorProps[ name ] = vendorPropName( name ) || name;
 }
+
+
+var
+
+	// Swappable if display is none or starts with table
+	// except "table", "table-cell", or "table-caption"
+	// See here for display values: https://developer.mozilla.org/en-US/docs/CSS/display
+	rdisplayswap = /^(none|table(?!-c[ea]).+)/,
+	rcustomProp = /^--/,
+	cssShow = { position: "absolute", visibility: "hidden", display: "block" },
+	cssNormalTransform = {
+		letterSpacing: "0",
+		fontWeight: "400"
+	};
 
 function setPositiveNumber( elem, value, subtract ) {
 
@@ -12580,7 +13669,10 @@ function boxModelAdjustment( elem, dimension, box, isBorderBox, styles, computed
 			delta -
 			extra -
 			0.5
-		) );
+
+		// If offsetWidth/offsetHeight is unknown, then we can't determine content-box scroll gutter
+		// Use an explicit zero to avoid NaN (gh-3964)
+		) ) || 0;
 	}
 
 	return delta;
@@ -12590,9 +13682,16 @@ function getWidthOrHeight( elem, dimension, extra ) {
 
 	// Start with computed style
 	var styles = getStyles( elem ),
+
+		// To avoid forcing a reflow, only fetch boxSizing if we need it (gh-4322).
+		// Fake content-box until we know it's needed to know the true value.
+		boxSizingNeeded = !support.boxSizingReliable() || extra,
+		isBorderBox = boxSizingNeeded &&
+			jQuery.css( elem, "boxSizing", false, styles ) === "border-box",
+		valueIsBorderBox = isBorderBox,
+
 		val = curCSS( elem, dimension, styles ),
-		isBorderBox = jQuery.css( elem, "boxSizing", false, styles ) === "border-box",
-		valueIsBorderBox = isBorderBox;
+		offsetProp = "offset" + dimension[ 0 ].toUpperCase() + dimension.slice( 1 );
 
 	// Support: Firefox <=54
 	// Return a confounding non-pixel value or feign ignorance, as appropriate.
@@ -12603,22 +13702,29 @@ function getWidthOrHeight( elem, dimension, extra ) {
 		val = "auto";
 	}
 
-	// Check for style in case a browser which returns unreliable values
-	// for getComputedStyle silently falls back to the reliable elem.style
-	valueIsBorderBox = valueIsBorderBox &&
-		( support.boxSizingReliable() || val === elem.style[ dimension ] );
 
 	// Fall back to offsetWidth/offsetHeight when value is "auto"
 	// This happens for inline elements with no explicit setting (gh-3571)
 	// Support: Android <=4.1 - 4.3 only
 	// Also use offsetWidth/offsetHeight for misreported inline dimensions (gh-3602)
-	if ( val === "auto" ||
-		!parseFloat( val ) && jQuery.css( elem, "display", false, styles ) === "inline" ) {
+	// Support: IE 9-11 only
+	// Also use offsetWidth/offsetHeight for when box sizing is unreliable
+	// We use getClientRects() to check for hidden/disconnected.
+	// In those cases, the computed value can be trusted to be border-box
+	if ( ( !support.boxSizingReliable() && isBorderBox ||
+		val === "auto" ||
+		!parseFloat( val ) && jQuery.css( elem, "display", false, styles ) === "inline" ) &&
+		elem.getClientRects().length ) {
 
-		val = elem[ "offset" + dimension[ 0 ].toUpperCase() + dimension.slice( 1 ) ];
+		isBorderBox = jQuery.css( elem, "boxSizing", false, styles ) === "border-box";
 
-		// offsetWidth/offsetHeight provide border-box values
-		valueIsBorderBox = true;
+		// Where available, offsetWidth/offsetHeight approximate border box dimensions.
+		// Where not available (e.g., SVG), assume unreliable box-sizing and interpret the
+		// retrieved value as a content box dimension.
+		valueIsBorderBox = offsetProp in elem;
+		if ( valueIsBorderBox ) {
+			val = elem[ offsetProp ];
+		}
 	}
 
 	// Normalize "" and auto
@@ -12664,6 +13770,13 @@ jQuery.extend( {
 		"flexGrow": true,
 		"flexShrink": true,
 		"fontWeight": true,
+		"gridArea": true,
+		"gridColumn": true,
+		"gridColumnEnd": true,
+		"gridColumnStart": true,
+		"gridRow": true,
+		"gridRowEnd": true,
+		"gridRowStart": true,
 		"lineHeight": true,
 		"opacity": true,
 		"order": true,
@@ -12719,7 +13832,9 @@ jQuery.extend( {
 			}
 
 			// If a number was passed in, add the unit (except for certain CSS properties)
-			if ( type === "number" ) {
+			// The isCustomProp check can be removed in jQuery 4.0 when we only auto-append
+			// "px" to a few hardcoded values.
+			if ( type === "number" && !isCustomProp ) {
 				value += ret && ret[ 3 ] || ( jQuery.cssNumber[ origName ] ? "" : "px" );
 			}
 
@@ -12819,18 +13934,29 @@ jQuery.each( [ "height", "width" ], function( i, dimension ) {
 		set: function( elem, value, extra ) {
 			var matches,
 				styles = getStyles( elem ),
-				isBorderBox = jQuery.css( elem, "boxSizing", false, styles ) === "border-box",
-				subtract = extra && boxModelAdjustment(
-					elem,
-					dimension,
-					extra,
-					isBorderBox,
-					styles
-				);
+
+				// Only read styles.position if the test has a chance to fail
+				// to avoid forcing a reflow.
+				scrollboxSizeBuggy = !support.scrollboxSize() &&
+					styles.position === "absolute",
+
+				// To avoid forcing a reflow, only fetch boxSizing if we need it (gh-3991)
+				boxSizingNeeded = scrollboxSizeBuggy || extra,
+				isBorderBox = boxSizingNeeded &&
+					jQuery.css( elem, "boxSizing", false, styles ) === "border-box",
+				subtract = extra ?
+					boxModelAdjustment(
+						elem,
+						dimension,
+						extra,
+						isBorderBox,
+						styles
+					) :
+					0;
 
 			// Account for unreliable border-box dimensions by comparing offset* to computed and
 			// faking a content-box to get border and padding (gh-3699)
-			if ( isBorderBox && support.scrollboxSize() === styles.position ) {
+			if ( isBorderBox && scrollboxSizeBuggy ) {
 				subtract -= Math.ceil(
 					elem[ "offset" + dimension[ 0 ].toUpperCase() + dimension.slice( 1 ) ] -
 					parseFloat( styles[ dimension ] ) -
@@ -12998,9 +14124,9 @@ Tween.propHooks = {
 			// Use .style if available and use plain properties where available.
 			if ( jQuery.fx.step[ tween.prop ] ) {
 				jQuery.fx.step[ tween.prop ]( tween );
-			} else if ( tween.elem.nodeType === 1 &&
-				( tween.elem.style[ jQuery.cssProps[ tween.prop ] ] != null ||
-					jQuery.cssHooks[ tween.prop ] ) ) {
+			} else if ( tween.elem.nodeType === 1 && (
+					jQuery.cssHooks[ tween.prop ] ||
+					tween.elem.style[ finalPropName( tween.prop ) ] != null ) ) {
 				jQuery.style( tween.elem, tween.prop, tween.now + tween.unit );
 			} else {
 				tween.elem[ tween.prop ] = tween.now;
@@ -14707,6 +15833,10 @@ jQuery.param = function( a, traditional ) {
 				encodeURIComponent( value == null ? "" : value );
 		};
 
+	if ( a == null ) {
+		return "";
+	}
+
 	// If an array was passed in, assume that it is an array of form elements.
 	if ( Array.isArray( a ) || ( a.jquery && !jQuery.isPlainObject( a ) ) ) {
 
@@ -15209,12 +16339,14 @@ jQuery.extend( {
 						if ( !responseHeaders ) {
 							responseHeaders = {};
 							while ( ( match = rheaders.exec( responseHeadersString ) ) ) {
-								responseHeaders[ match[ 1 ].toLowerCase() ] = match[ 2 ];
+								responseHeaders[ match[ 1 ].toLowerCase() + " " ] =
+									( responseHeaders[ match[ 1 ].toLowerCase() + " " ] || [] )
+										.concat( match[ 2 ] );
 							}
 						}
-						match = responseHeaders[ key.toLowerCase() ];
+						match = responseHeaders[ key.toLowerCase() + " " ];
 					}
-					return match == null ? null : match;
+					return match == null ? null : match.join( ", " );
 				},
 
 				// Raw string
@@ -15603,7 +16735,7 @@ jQuery.each( [ "get", "post" ], function( i, method ) {
 } );
 
 
-jQuery._evalUrl = function( url ) {
+jQuery._evalUrl = function( url, options ) {
 	return jQuery.ajax( {
 		url: url,
 
@@ -15613,7 +16745,16 @@ jQuery._evalUrl = function( url ) {
 		cache: true,
 		async: false,
 		global: false,
-		"throws": true
+
+		// Only evaluate the response if it is successful (gh-4126)
+		// dataFilter is not invoked for failure responses, so using it instead
+		// of the default converter is kludgy but it works.
+		converters: {
+			"text script": function() {}
+		},
+		dataFilter: function( response ) {
+			jQuery.globalEval( response, options );
+		}
 	} );
 };
 
@@ -15896,24 +17037,21 @@ jQuery.ajaxPrefilter( "script", function( s ) {
 // Bind script tag hack transport
 jQuery.ajaxTransport( "script", function( s ) {
 
-	// This transport only deals with cross domain requests
-	if ( s.crossDomain ) {
+	// This transport only deals with cross domain or forced-by-attrs requests
+	if ( s.crossDomain || s.scriptAttrs ) {
 		var script, callback;
 		return {
 			send: function( _, complete ) {
-				script = jQuery( "<script>" ).prop( {
-					charset: s.scriptCharset,
-					src: s.url
-				} ).on(
-					"load error",
-					callback = function( evt ) {
+				script = jQuery( "<script>" )
+					.attr( s.scriptAttrs || {} )
+					.prop( { charset: s.scriptCharset, src: s.url } )
+					.on( "load error", callback = function( evt ) {
 						script.remove();
 						callback = null;
 						if ( evt ) {
 							complete( evt.type === "error" ? 404 : 200, evt.type );
 						}
-					}
-				);
+					} );
 
 				// Use native DOM manipulation to avoid our domManip AJAX trickery
 				document.head.appendChild( script[ 0 ] );
@@ -33714,7 +34852,7 @@ return jQuery;
   else {}
 }.call(this));
 
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../_webpack@4.29.6@webpack/buildin/global.js */ "./node_modules/_webpack@4.29.6@webpack/buildin/global.js"), __webpack_require__(/*! ./../_webpack@4.29.6@webpack/buildin/module.js */ "./node_modules/_webpack@4.29.6@webpack/buildin/module.js")(module)))
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../_webpack@4.30.0@webpack/buildin/global.js */ "./node_modules/_webpack@4.30.0@webpack/buildin/global.js"), __webpack_require__(/*! ./../_webpack@4.30.0@webpack/buildin/module.js */ "./node_modules/_webpack@4.30.0@webpack/buildin/module.js")(module)))
 
 /***/ }),
 
@@ -36332,7 +37470,7 @@ Popper.Defaults = Defaults;
 /* harmony default export */ __webpack_exports__["default"] = (Popper);
 //# sourceMappingURL=popper.js.map
 
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../_webpack@4.29.6@webpack/buildin/global.js */ "./node_modules/_webpack@4.29.6@webpack/buildin/global.js")))
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../_webpack@4.30.0@webpack/buildin/global.js */ "./node_modules/_webpack@4.30.0@webpack/buildin/global.js")))
 
 /***/ }),
 
@@ -36531,7 +37669,7 @@ process.umask = function() { return 0; };
 
 /***/ }),
 
-/***/ "./node_modules/_webpack@4.29.6@webpack/buildin/global.js":
+/***/ "./node_modules/_webpack@4.30.0@webpack/buildin/global.js":
 /*!***********************************!*\
   !*** (webpack)/buildin/global.js ***!
   \***********************************/
@@ -36562,7 +37700,7 @@ module.exports = g;
 
 /***/ }),
 
-/***/ "./node_modules/_webpack@4.29.6@webpack/buildin/module.js":
+/***/ "./node_modules/_webpack@4.30.0@webpack/buildin/module.js":
 /*!***********************************!*\
   !*** (webpack)/buildin/module.js ***!
   \***********************************/
@@ -36607,7 +37745,9 @@ module.exports = function(module) {
  * includes Vue and other libraries. It is a great starting point when
  * building robust, powerful web applications using Vue and Laravel.
  */
-__webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js"); //window.Vue = require('vue');
+__webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js");
+
+__webpack_require__(/*! jquery-pjax */ "./node_modules/_jquery-pjax@2.0.1@jquery-pjax/jquery.pjax.js"); //window.Vue = require('vue');
 
 /**
  * The following block of code may be used to automatically register your
@@ -36647,7 +37787,7 @@ window._ = __webpack_require__(/*! lodash */ "./node_modules/_lodash@4.17.11@lod
 
 try {
   window.Popper = __webpack_require__(/*! popper.js */ "./node_modules/_popper.js@1.15.0@popper.js/dist/esm/popper.js")["default"];
-  window.$ = window.jQuery = __webpack_require__(/*! jquery */ "./node_modules/_jquery@3.3.1@jquery/dist/jquery.js");
+  window.$ = window.jQuery = __webpack_require__(/*! jquery */ "./node_modules/_jquery@3.4.0@jquery/dist/jquery.js");
 
   __webpack_require__(/*! bootstrap */ "./node_modules/_bootstrap@4.3.1@bootstrap/dist/js/bootstrap.js");
 } catch (e) {}

@@ -10,25 +10,24 @@
     <script type="text/javascript" src="{{ asset('js/simditor.js') }}"></script>
 
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             var editor = new Simditor({
                 textarea: $('#editor'),
-                upload:{
-                    url:'{{route('topics.upload_image')}}',
-                    params:{
-                        _token:'{{ csrf_token() }}'
+                upload: {
+                    url: '{{route('topics.upload_image')}}',
+                    params: {
+                        _token: '{{ csrf_token() }}'
                     },
-                    fileKey:'upload_file',
-                    connectionCount:3,
-                    leaveConfirm:"文件上传中，关闭此页面将取消上传。"
+                    fileKey: 'upload_file',
+                    connectionCount: 3,
+                    leaveConfirm: "文件上传中，关闭此页面将取消上传。"
                 },
-                pasteImage:true,
+                pasteImage: true,
             });
         });
     </script>
 @stop
 @section('content')
-
     <div class="container">
         <div class="col-md-10 offset-md-1">
             <div class="card ">
@@ -63,7 +62,8 @@
 
                                     <div class="form-group">
                                         <select class="form-control" name="category_id" required>
-                                            <option value="" hidden disabled {{ $topic->id ? "" : "selected" }}>请选择分类</option>
+                                            <option value="" hidden disabled {{ $topic->id ? "" : "selected" }}>请选择分类
+                                            </option>
                                             @foreach ($categories as $value)
                                                 <option value="{{ $value->id }}" {{ $topic->category_id == $value->id ? "selected" : "" }}>{{ $value->name }}</option>
                                             @endforeach
@@ -71,7 +71,8 @@
                                     </div>
                                     <div class="form-group">
                                         <select class="form-control" name="tag_id" required>
-                                            <option value="" hidden disabled {{ $topic->id ? "" : "selected" }}>请选择标签</option>
+                                            <option value="" hidden disabled {{ $topic->id ? "" : "selected" }}>请选择标签
+                                            </option>
                                             @foreach ($tags as $t)
                                                 <option value="{{ $t->id }}" {{ $topic->tag_id == $t->id ? "selected" : "" }}>{{ $t->name }}</option>
                                             @endforeach
@@ -92,5 +93,4 @@
             </div>
         </div>
     </div>
-
 @endsection

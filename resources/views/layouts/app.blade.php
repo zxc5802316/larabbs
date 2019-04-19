@@ -36,6 +36,8 @@
 <!-- Scripts -->
 {{--script--}}
 <script src="{{ mix('js/app.js') }}"></script>
+{{--<script src="{{ asset('plugins/pjax/pjax.js') }}"></script>--}}
+{{--<link rel="stylesheet" href="{{ asset('plugins/pjax/pjax.css') }}">--}}
 @yield("scripts")
 </body>
 </html>

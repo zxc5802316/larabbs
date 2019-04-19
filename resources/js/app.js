@@ -6,7 +6,7 @@
  */
 
 require('./bootstrap');
-
+require('jquery-pjax');
 //window.Vue = require('vue');
 
 /**
