@@ -2,7 +2,6 @@
 
 @section('title', $topic->title)
 @section('description', $topic->excerpt)
-
 @section('content')
 
   <div class="row">
@@ -23,6 +22,23 @@
           </div>
         </div>
       </div>
+      @if (count($usertopics))
+        <div class="card mt-4">
+          <div class="card-body pt-2">
+            <div class="text-center mt-1 mb-0 text-muted">最近文章</div>
+            <hr class="mt-2 mb-3">
+            @foreach ($usertopics as $usertopic)
+              <a class="media mt-1" href="{{ $usertopic->title }}">
+                <div class="media-body">
+                  <span class="badge badge-secondary" style="background: #dddddd">{{$usertopic->created_at->diffForHumans()}}</span><span class="media-heading text-muted">{{ $usertopic->title }}</span>
+                </div>
+              </a>
+              <hr>
+            @endforeach
+
+          </div>
+        </div>
+      @endif
     </div>
 
     <div class="col-lg-9 col-md-9 col-sm-12 col-xs-12 topic-content">
@@ -73,3 +89,17 @@
     </div>
   </div>
 @stop
+@section("scripts")
+  <script>
+    var codes = document.getElementsByClassName('hljs');
+    for(let item of codes){
+      window.hljs.highlightBlock(item);
+    }
+    var maths = document.getElementsByClassName('math');
+    for(let item of maths){
+      window.katex.render(item.innerHTML, item, {
+        throwOnError: true
+      });
+    }
+  </script>
+  @stop

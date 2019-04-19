@@ -18,8 +18,6 @@ class ReplyObserver
 
     public function creating(Reply $reply)
     {
-        $reply->content = str_replace("{","<span>{</span>",$reply->content);
-        $reply->content = str_replace("}","<span>}</span>",$reply->content);
         $reply->content = clean($reply->content,"user_topic_body");
     }
 

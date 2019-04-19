@@ -1,0 +1,25 @@
+.smartmd__toolbar{
+    border: 1px solid #ddd;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+.smartmd__statusbar{
+    border: none;
+}
+.CodeMirror{
+    border-right:1px solid #ddd ;
+    border-left:1px solid #ddd ;
+    border-bottom:1px solid #ddd ;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    margin-bottom: 10px;
+}
+.CodeMirror-scroll{
+    overflow: scroll!important;
+    margin-bottom: -30px;
+    margin-right: -30px;
+    padding-bottom: 30px;
+    height: 100%;
+    outline: 0;
+    position: relative;
+}

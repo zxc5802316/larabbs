@@ -34,7 +34,9 @@ class TopicRequest extends Request
     {
         return [
             'title.min' => '标题必须至少两个字符',
+            'title.required' => '请输入标题',
             'body.min' => '文章内容必须至少三个字符',
+            'body.body' => '请输入文章内容',
             "tag_id.required" => "请选择标签"
         ];
     }

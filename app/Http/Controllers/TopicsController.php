@@ -11,6 +11,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TopicRequest;
+use NoisyWinds\Smartmd\Markdown;
+
 
 class TopicsController extends Controller
 {
@@ -28,12 +30,13 @@ class TopicsController extends Controller
         return view('topics.index', compact('topics', 'active_users', 'links',"tags"));
 	}
 
-    public function show(Request $request,Topic $topic)
+    public function show(Request $request,Topic $topic,User $user)
     {
         if(! empty($topic->slug) && $topic->slug != $request->slug){
             return redirect($topic->link());
         }
-        return view('topics.show', compact('topic'));
+        $usertopics  = $user->find($topic->user_id)->topics->sortByDesc("created_at")->take(6)->all();
+        return view('topics.show', compact('topic',"usertopics"));
     }
 
 	public function create(Topic $topic,Tag $tag)

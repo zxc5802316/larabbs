@@ -17,12 +17,10 @@ class TopicObserver
 
     public function saving(Topic $topic)
     {
-        $topic->body = str_replace("{","<span>{</span>",$topic->body);
-        $topic->body = str_replace("}","<span>}</span>",$topic->body);
+
         //Parsedown
         // XSS 过滤
         $topic->body = clean($topic->body, 'user_topic_body');
-
         // 生成话题摘录
         $topic->excerpt = make_excerpt($topic->body);
 

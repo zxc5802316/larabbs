@@ -375,3 +375,21 @@
     content: normal;
   }
 }
+.hljs-keyword, .hljs-selector-tag, .hljs-deletion {
+  color: #cc7832;
+}
+.hljs-section, .hljs-title, .hljs-type {
+  color: #ffc66d;
+}
+.hljs-string, .hljs-attribute, .hljs-addition {
+  color: #6A8759;
+}
+.hljs-comment, .hljs-quote {
+  color: #808080;
+}
+.hljs {
+  color: #a9b7c6;
+}
+.hljs-meta {
+  color: #bbb529;
+}
