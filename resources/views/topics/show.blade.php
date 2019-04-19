@@ -28,7 +28,7 @@
             <div class="text-center mt-1 mb-0 text-muted">最近文章</div>
             <hr class="mt-2 mb-3">
             @foreach ($usertopics as $usertopic)
-              <a class="media mt-1" href="{{ $usertopic->title }}">
+              <a class="media mt-1" href="{{ $usertopic->link() }}">
                 <div class="media-body">
                   <span class="badge badge-secondary" style="background: #dddddd">{{$usertopic->created_at->diffForHumans()}}</span><span class="media-heading text-muted">{{ $usertopic->title }}</span>
                 </div>
