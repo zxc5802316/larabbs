@@ -2,12 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="94448f72-f804-4f84-8052-91ef1a26aee0" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/Http/Controllers/TopicsController.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/Http/Controllers/TopicsController.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/Observers/TopicObserver.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/Observers/TopicObserver.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/composer.json" beforeDir="false" afterPath="$PROJECT_DIR$/composer.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/resources/views/layouts/_footer.blade.php" beforeDir="false" afterPath="$PROJECT_DIR$/resources/views/layouts/_footer.blade.php" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -81,11 +76,20 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/composer.json">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="90">
               <caret line="3" column="41" selection-start-line="3" selection-start-column="41" selection-end-line="3" selection-end-column="41" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/.env">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="330">
+              <caret line="11" selection-start-line="11" selection-end-line="13" selection-end-column="18" />
             </state>
           </provider>
         </entry>
@@ -173,7 +177,6 @@
         <option value="$PROJECT_DIR$/resources/views/topics/_smartmd.blade.php" />
         <option value="$PROJECT_DIR$/routes/web.php" />
         <option value="$PROJECT_DIR$/app/Observers/ReplyObserver.php" />
-        <option value="$PROJECT_DIR$/.env" />
         <option value="$PROJECT_DIR$/app/Jobs/TranslateSlug.php" />
         <option value="$PROJECT_DIR$/config/administrator.php" />
         <option value="$PROJECT_DIR$/config/administrator/tags.php" />
@@ -190,6 +193,7 @@
         <option value="$PROJECT_DIR$/app/Observers/TopicObserver.php" />
         <option value="$PROJECT_DIR$/app/Http/Controllers/TopicsController.php" />
         <option value="$PROJECT_DIR$/composer.json" />
+        <option value="$PROJECT_DIR$/.env" />
       </list>
     </option>
   </component>
@@ -313,7 +317,7 @@
       <path value="$PROJECT_DIR$/vendor/spatie/laravel-pjax" />
     </include_path>
   </component>
-  <component name="ProjectFrameBounds" extendedState="6">
+  <component name="ProjectFrameBounds" extendedState="7">
     <option name="x" value="1025" />
     <option name="y" value="24" />
     <option name="width" value="860" />
@@ -331,17 +335,6 @@
             <path>
               <item name="larabbs" type="b2602c69:ProjectViewProjectNode" />
               <item name="larabbs" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="larabbs" type="b2602c69:ProjectViewProjectNode" />
-              <item name="larabbs" type="462c0819:PsiDirectoryNode" />
-              <item name="app" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="larabbs" type="b2602c69:ProjectViewProjectNode" />
-              <item name="larabbs" type="462c0819:PsiDirectoryNode" />
-              <item name="app" type="462c0819:PsiDirectoryNode" />
-              <item name="Policies" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="larabbs" type="b2602c69:ProjectViewProjectNode" />
@@ -425,12 +418,12 @@
       <workItem from="1555635607687" duration="12689000" />
       <workItem from="1555655866775" duration="267000" />
       <workItem from="1555656442246" duration="6460000" />
-      <workItem from="1555897762002" duration="8142000" />
+      <workItem from="1555897762002" duration="8160000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="181930000" />
+    <option name="totallyTimeSpent" value="181948000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="7" />
@@ -765,13 +758,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/.env">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="720">
-          <caret line="30" selection-start-line="30" selection-end-line="30" selection-end-column="19" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/app/Observers/TopicObserver.php">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="960">
@@ -806,6 +792,13 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="90">
           <caret line="3" column="41" selection-start-line="3" selection-start-column="41" selection-end-line="3" selection-end-column="41" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.env">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="330">
+          <caret line="11" selection-start-line="11" selection-end-line="13" selection-end-column="18" />
         </state>
       </provider>
     </entry>
