@@ -16,6 +16,7 @@ use NoisyWinds\Smartmd\Markdown;
 
 class TopicsController extends Controller
 {
+    public static $tag_id = "";
     public function __construct()
     {
         $this->middleware('auth', ['except' => ['index', 'show']]);
@@ -68,7 +69,6 @@ class TopicsController extends Controller
 	{
 		$this->authorize('update', $topic);
 		$topic->update($request->all());
-
 		return redirect()->route('topics.show', $topic->id)->with('success', '更新成功！');
 	}
 

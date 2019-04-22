@@ -5,5 +5,6 @@
         </p>
 
         <p class="float-right"><a href="mailto:{{ setting('contact_email') }}">联系我们</a></p>
+        <p class="float-right mr-2">备案号：京ICP备17049599号-1</p>
     </div>
 </footer>
